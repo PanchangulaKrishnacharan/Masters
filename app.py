@@ -1,61 +1,118 @@
 import streamlit as st
 import pandas as pd
-import joblib
+import numpy as np
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import (
+    accuracy_score,
+    roc_auc_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    matthews_corrcoef,
+    confusion_matrix,
+    ConfusionMatrixDisplay
+)
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+
 import matplotlib.pyplot as plt
 
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+st.title("Bank Marketing Classification App")
 
-# Page Config
-st.set_page_config(page_title="ML Assignment 2", layout="wide")
-st.title("Machine Learning Classification – Assignment 2")
+# ---------------------------
+# Load Dataset
+# ---------------------------
+df = pd.read_csv("bank-full.csv", sep=";")
 
-# Load Metrics
-metrics_df = pd.read_csv("model/metrics.csv")
+df["y"] = df["y"].map({"yes": 1, "no": 0})
 
-# Sidebar
-st.sidebar.header("Controls")
+df = pd.get_dummies(df, drop_first=True)
 
-uploaded_file = st.sidebar.file_uploader(
-    "Upload TEST dataset (CSV only)",
-    type=["csv"]
+X = df.drop("y", axis=1)
+y = df["y"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.2,
+    random_state=42,
+    stratify=y
 )
 
-selected_model = st.sidebar.selectbox(
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# ---------------------------
+# Model Selection
+# ---------------------------
+model_name = st.selectbox(
     "Select Model",
-    metrics_df["Model"].tolist()
+    [
+        "Logistic Regression",
+        "Decision Tree",
+        "KNN",
+        "Naive Bayes",
+        "Random Forest",
+        "XGBoost"
+    ]
 )
 
-# Display Metrics
+# ---------------------------
+# Initialize Model
+# ---------------------------
+if model_name == "Logistic Regression":
+    model = LogisticRegression(max_iter=2000)
+elif model_name == "Decision Tree":
+    model = DecisionTreeClassifier(random_state=42)
+elif model_name == "KNN":
+    model = KNeighborsClassifier(n_neighbors=5)
+elif model_name == "Naive Bayes":
+    model = GaussianNB()
+elif model_name == "Random Forest":
+    model = RandomForestClassifier(n_estimators=200, random_state=42)
+elif model_name == "XGBoost":
+    model = XGBClassifier(eval_metric="logloss", random_state=42)
+
+# ---------------------------
+# Train Model
+# ---------------------------
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+y_prob = model.predict_proba(X_test)[:, 1]
+
+# ---------------------------
+# Evaluation Metrics
+# ---------------------------
+accuracy = accuracy_score(y_test, y_pred)
+auc = roc_auc_score(y_test, y_prob)
+precision = precision_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred)
+f1 = f1_score(y_test, y_pred)
+mcc = matthews_corrcoef(y_test, y_pred)
+
 st.subheader("Evaluation Metrics")
-st.dataframe(metrics_df[metrics_df["Model"] == selected_model])
 
-# Load Model & Scaler
-model = joblib.load(f"model/{selected_model.replace(' ', '_')}.pkl")
-scaler = joblib.load("model/scaler.pkl")
+metrics_df = pd.DataFrame({
+    "Metric": ["Accuracy", "AUC", "Precision", "Recall", "F1", "MCC"],
+    "Score": [accuracy, auc, precision, recall, f1, mcc]
+})
 
-# Dataset Upload Handling
-if uploaded_file:
-    df_test = pd.read_csv(uploaded_file, sep=None, engine="python")
+st.dataframe(metrics_df)
 
-    if "y" not in df_test.columns:
-        st.error("❌ Uploaded dataset must contain 'y' column")
-    else:
-        df_test["y"] = df_test["y"].map({"yes": 1, "no": 0})
-        df_test = pd.get_dummies(df_test, drop_first=True)
+# ---------------------------
+# Confusion Matrix
+# ---------------------------
+st.subheader("Confusion Matrix")
 
-        X_test = df_test.drop("y", axis=1)
-        y_test = df_test["y"]
-
-        feature_columns = joblib.load("model/feature_columns.pkl")
-
-        X_test = X_test.reindex(columns=feature_columns, fill_value=0)
-
-        X_test = scaler.transform(X_test)
-        y_pred = model.predict(X_test)
-
-        st.subheader("Confusion Matrix")
-
-        cm = confusion_matrix(y_test, y_pred)
-        fig, ax = plt.subplots()
-        ConfusionMatrixDisplay(cm).plot(ax=ax)
-        st.pyplot(fig)
+cm = confusion_matrix(y_test, y_pred)
+fig, ax = plt.subplots()
+ConfusionMatrixDisplay(cm).plot(ax=ax)
+st.pyplot(fig)
