@@ -23,8 +23,8 @@ Source: UCI Machine Learning Repository
 File Used: bank-full.csv  
 
 Dataset Details:
-- Total Instances: 41,188  
-- Number of Features: 20 (before encoding)  
+- Total Instances: 45,211  
+- Number of Features: 16 (before encoding)  
 - Target Variable: y  
 - Type: Binary Classification  
 
@@ -38,6 +38,7 @@ Preprocessing Steps:
 2. Applied one-hot encoding to categorical features.
 3. Split dataset into 80% training and 20% testing.
 4. Standardized features using StandardScaler.
+5. Models are trained dynamically at runtime inside the Streamlit application (no pre-saved .pkl files are used).
 
 The dataset is slightly imbalanced, as most customers did not subscribe.
 
@@ -73,17 +74,23 @@ The following six machine learning models were implemented:
 
 | ML Model Name | Observation |
 |---------------|------------|
-| Logistic Regression | Achieved high accuracy and good AUC, but recall is relatively low. Struggles with class imbalance. |
-| Decision Tree | Moderate performance with lower AUC compared to ensemble models. May slightly overfit. |
-| kNN | Good accuracy but low recall. Distance-based learning struggles with imbalance. |
-| Naive Bayes | Lowest accuracy among models. Independence assumption limits performance. |
-| Random Forest (Ensemble) | Strong performance with high AUC. Handles non-linear relationships well. |
-| XGBoost (Ensemble) | Best overall model with highest F1 and MCC. Provides good balance between precision and recall. |
+| Logistic Regression | Achieved high accuracy and good AUC, but recall is relatively low. It struggles to correctly identify all positive subscription cases due to class imbalance. |
+| Decision Tree | Moderate performance with lower AUC compared to ensemble models. It may slightly overfit and does not generalize as effectively as ensemble methods. |
+| kNN | Good accuracy but relatively low recall. Distance-based learning is sensitive to class imbalance and feature scaling. |
+| Naive Bayes | Lowest accuracy among the models. Although recall is moderate, the strong independence assumption limits its predictive performance. |
+| Random Forest (Ensemble) | Strong overall performance with high AUC and better precision. It captures non-linear relationships effectively and performs better than a single Decision Tree. |
+| XGBoost (Ensemble) | Best overall model with highest F1-score and MCC. It provides a good balance between precision and recall, making it the most suitable model for this dataset. |
+
+---
+
+## Implementation Details
+
+The Streamlit application trains the selected model dynamically at runtime using the Bank Marketing dataset. Evaluation metrics and the confusion matrix are generated live based on the selected model. This ensures reproducibility and avoids dependency on large pre-saved model files.
 
 ---
 
 ## Final Conclusion
 
-Among all models, XGBoost achieved the best overall performance based on F1-score, MCC, and AUC. Although Random Forest also performed well, XGBoost provided a better balance between precision and recall, making it the most suitable model for this dataset.
+Among all models, XGBoost achieved the best overall performance based on F1-score, MCC, and AUC. Although Random Forest also performed strongly, XGBoost provided a better balance between precision and recall.
 
-Since the dataset is imbalanced, F1-score and MCC are more reliable indicators than accuracy alone.
+Since the dataset is imbalanced, F1-score and MCC are more reliable indicators of performance than accuracy alone.
