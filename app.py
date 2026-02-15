@@ -78,7 +78,7 @@ st.pyplot(fig)
 # Uploaded File Evaluation
 if uploaded_file:
 
-    st.subheader("📂 Evaluation on Uploaded File")
+    st.subheader(f"📂 Evaluation on: {uploaded_file.name}")
 
     df_upload = pd.read_csv(uploaded_file, sep=None, engine="python")
 
