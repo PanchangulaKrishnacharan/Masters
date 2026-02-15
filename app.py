@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
     accuracy_score,
     roc_auc_score,
@@ -14,21 +13,14 @@ from sklearn.metrics import (
     ConfusionMatrixDisplay
 )
 
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.ensemble import RandomForestClassifier
-from xgboost import XGBClassifier
+from model.model import load_and_preprocess, get_model
 
-import matplotlib.pyplot as plt
-
-# Streamlit Page Configuration
+# Page Config
 st.set_page_config(page_title="Bank Marketing ML App", layout="wide")
 
 st.title("📊 Bank Marketing Classification App")
 
-# Sidebar for Model Selection and File Upload
+# Sidebar
 st.sidebar.header("⚙️ Model & Testing Options")
 
 model_name = st.sidebar.selectbox(
@@ -48,55 +40,14 @@ uploaded_file = st.sidebar.file_uploader(
     type=["csv"]
 )
 
-# load dataset with caching
-@st.cache_data
-def load_data():
-    return pd.read_csv("bank-full.csv", sep=";")
+# Load & Preprocess
+X_train, X_test, y_train, y_test, scaler, feature_columns = load_and_preprocess()
 
-df = load_data()
-
-df["y"] = df["y"].map({"yes": 1, "no": 0})
-df = pd.get_dummies(df, drop_first=True)
-
-X = df.drop("y", axis=1)
-y = df["y"]
-
-feature_columns = X.columns 
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y,
-    test_size=0.2,
-    random_state=42,
-    stratify=y
-)
-
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
-
-# model initialization
-if model_name == "Logistic Regression":
-    model = LogisticRegression(max_iter=2000)
-
-elif model_name == "Decision Tree":
-    model = DecisionTreeClassifier(random_state=42)
-
-elif model_name == "KNN":
-    model = KNeighborsClassifier(n_neighbors=5)
-
-elif model_name == "Naive Bayes":
-    model = GaussianNB()
-
-elif model_name == "Random Forest":
-    model = RandomForestClassifier(n_estimators=200, random_state=42)
-
-elif model_name == "XGBoost":
-    model = XGBClassifier(eval_metric="logloss", random_state=42)
-
-# model training
+# Model Training
+model = get_model(model_name)
 model.fit(X_train, y_train)
 
-# test split evaluation
+# Test Split Evaluation
 st.subheader("📈 Evaluation Metrics (Test Split)")
 
 y_pred = model.predict(X_test)
@@ -123,6 +74,7 @@ fig, ax = plt.subplots()
 ConfusionMatrixDisplay(cm).plot(ax=ax)
 st.pyplot(fig)
 
+
 # Uploaded File Evaluation
 if uploaded_file:
 
@@ -141,7 +93,6 @@ if uploaded_file:
         y_upload = df_upload["y"]
 
         X_upload = X_upload.reindex(columns=feature_columns, fill_value=0)
-
         X_upload = scaler.transform(X_upload)
 
         y_pred_upload = model.predict(X_upload)
