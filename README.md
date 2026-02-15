@@ -19,7 +19,7 @@ The goal is to implement multiple machine learning classification models, compar
 ## b. Dataset Description
 
 Dataset Name: Bank Marketing Dataset  
-Source: UCI Machine Learning Repository  
+Source: https://archive.ics.uci.edu/dataset/222/bank+marketing (UCI Machine Learning Repository)
 File Used: bank-full.csv  
 
 Dataset Details:
